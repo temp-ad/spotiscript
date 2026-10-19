@@ -1,0 +1,6 @@
+{
+  "name": "SpotScript",
+  "description": "Premium podcast listening and synchronized transcript web application with karaoke-style text highlighting, Spotify integration, and intelligent reading tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
