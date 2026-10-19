@@ -13,29 +13,41 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
 }) => {
   return (
     <div className="px-4 lg:px-8 pt-6 pb-4">
-      <div className="max-w-3xl mx-auto">
-        {episode.artworkUrl && (
-          <img
-            src={episode.artworkUrl}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="w-16 h-16 rounded-xl object-cover mb-4"
-          />
-        )}
-        <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 leading-snug">
-          {episode.title}
-        </h1>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          {episode.showName}
-          {episode.duration > 0 && <> · {formatDuration(episode.duration)}</>}
-          {episode.pubDate && <> · {episode.pubDate}</>}
-        </p>
-        {transcript && transcript.sentences.length === 0 && (
-          <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2">
-            No timed transcript is publicly available for this episode. Use
-            Import to attach your own SRT/VTT file for synchronized reading.
+      <div className="max-w-3xl mx-auto flex items-start gap-4">
+        {/* Cover art: real Spotify artwork when available, graceful fallback otherwise */}
+        <div className="hidden sm:flex w-16 h-16 rounded-xl shrink-0 overflow-hidden bg-neutral-100 dark:bg-neutral-800 items-center justify-center">
+          {episode.artworkUrl ? (
+            <img
+              src={episode.artworkUrl}
+              alt={`${episode.showName} cover`}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-lg font-semibold text-neutral-400 dark:text-neutral-500 select-none">
+              {(episode.showName || episode.title || '?').trim().charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 leading-snug">
+            {episode.title}
+          </h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            {episode.showName}
+            {episode.duration > 0 && <> · {formatDuration(episode.duration)}</>}
+            {episode.pubDate && <> · {episode.pubDate}</>}
           </p>
-        )}
+          {transcript && transcript.sentences.length === 0 && (
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-2">
+              No timed transcript is publicly available for this episode. Use
+              Import to attach your own SRT/VTT file for synchronized reading.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

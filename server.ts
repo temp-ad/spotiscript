@@ -22,6 +22,7 @@ async function scrapeEpisodePage(episodeId: string) {
     description?: string;
     showName?: string;
     pubDate?: string;
+    artworkUrl?: string;
   } = {};
 
   const decodeEntities = (raw: string) =>
@@ -79,6 +80,12 @@ async function scrapeEpisodePage(episodeId: string) {
 
   try {
     if (html) {
+      // Episode cover art: <meta property="og:image" content="https://...jpg"/>
+      const ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+      if (ogImageMatch && /^https?:\/\//.test(ogImageMatch[1])) {
+        result.artworkUrl = ogImageMatch[1];
+      }
+
       // Real audio duration in seconds, e.g. <meta name="music:duration" content="1719"/>
       const durMatch = html.match(/music:duration"\s+content="(\d+)"/i) ||
         html.match(/"duration_s":\s*(\d+)/) ||
@@ -208,7 +215,7 @@ app.get('/api/spotify/episode-info', async (req, res) => {
         id: episodeId,
         title: data.title || `Spotify Episode (${episodeId})`,
         showName: pageInfo.showName || data.author_name || 'Spotify Podcast',
-        artworkUrl: data.thumbnail_url || '',
+        artworkUrl: pageInfo.artworkUrl || data.thumbnail_url || '',
         durationSeconds: pageInfo.durationSeconds ?? null,
         description: pageInfo.description || '',
         pubDate: pageInfo.pubDate || 'Published on Spotify',
@@ -226,7 +233,7 @@ app.get('/api/spotify/episode-info', async (req, res) => {
       id: episodeId,
       title: `Episode (${episodeId.slice(0, 8)}...)`,
       showName: pageInfo.showName || 'Spotify Podcast',
-      artworkUrl: '',
+      artworkUrl: pageInfo.artworkUrl || '',
       durationSeconds: pageInfo.durationSeconds ?? null,
       description: pageInfo.description || '',
       pubDate: pageInfo.pubDate || 'Published on Spotify',

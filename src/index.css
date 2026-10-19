@@ -7,10 +7,32 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+html,
+body,
+#root {
+  overflow-x: hidden; /* no horizontal scrollbar anywhere */
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Every clickable element shows the pointing-hand cursor */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+input[type="range"],
+input[type="file"],
+label[for],
+select:not(:disabled),
+summary,
+a[href] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 ::-webkit-scrollbar {

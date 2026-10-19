@@ -8,8 +8,8 @@ export const SAMPLE_SPOTIFY_EPISODE: Episode = {
   sourceType: 'spotify',
   title: 'The Psychology of Everyday Decisions & Cognitive Biases',
   showName: 'Mind & Science Conversations',
-  artworkUrl: '',
-  duration: 4860, // ~1h 21m
+  artworkUrl: 'https://image-cdn-ak.spotifycdn.com/image/ab6772ab000016925bfb5e678b04e1b0e73ef589',
+  duration: 1719, // real audio length of the imported episode (28:39)
   pubDate: 'October 2026',
   sourceUrl: SAMPLE_SPOTIFY_URL,
   spotifyEmbedUrl: `https://open.spotify.com/embed/episode/${SAMPLE_SPOTIFY_ID}?utm_source=generator&theme=0`,
