@@ -485,9 +485,19 @@ export const SAMPLE_EPISODES: Episode[] = [
   SAMPLE_SPOTIFY_EPISODE,
 ];
 
-export function getTranscriptForEpisode(episodeId: string): Transcript {
-  if (episodeId === SAMPLE_SPOTIFY_ID || episodeId.includes('7yZjEnpvvudpUTdI6qsaPM')) {
-    return SAMPLE_SPOTIFY_TRANSCRIPT;
+const TRANSCRIPT_REGISTRY: Record<string, Transcript> = {
+  [SAMPLE_SPOTIFY_ID]: SAMPLE_SPOTIFY_TRANSCRIPT,
+  [SAMPLE_AUTHORIZED_EPISODE.id]: SAMPLE_AUTHORIZED_TRANSCRIPT,
+};
+
+// Register a transcript at runtime (e.g. custom SRT/VTT imports) so it can be
+// reloaded later when the user navigates back to that episode.
+export function registerTranscript(transcript: Transcript): void {
+  if (transcript && transcript.episodeId) {
+    TRANSCRIPT_REGISTRY[transcript.episodeId] = transcript;
   }
-  return SAMPLE_AUTHORIZED_TRANSCRIPT;
+}
+
+export function getTranscriptForEpisode(episodeId: string): Transcript | null {
+  return TRANSCRIPT_REGISTRY[episodeId] ?? null;
 }

@@ -23,9 +23,11 @@ import {
   SAMPLE_AUTHORIZED_EPISODE, 
   SAMPLE_AUTHORIZED_TRANSCRIPT,
   SAMPLE_SPOTIFY_EPISODE,
+  SAMPLE_SPOTIFY_ID,
   SAMPLE_SPOTIFY_TRANSCRIPT,
   SAMPLE_SPOTIFY_URL,
-  getTranscriptForEpisode
+  getTranscriptForEpisode,
+  registerTranscript
 } from './data/sampleEpisodes.ts';
 import { audioPlayerService } from './utils/audioPlayerService.ts';
 import { validateSpotifyEpisodeUrl } from './utils/spotify.ts';
@@ -134,6 +136,13 @@ export default function App() {
     audioPlayerService.loadSource(currentEpisode.audioUrl || 'SYNTHETIC_SPEECH_STREAM', currentEpisode.duration);
     setDuration(currentEpisode.duration);
     setCurrentTime(0);
+    // Reset transcript for episodes whose synced text lives in the library map
+    // (custom imports keep their own transcript via handleImportCustom).
+    if (currentEpisode.sourceType !== 'custom_upload') {
+      const tr = getTranscriptForEpisode(currentEpisode.id);
+      setCurrentTranscript(tr);
+    }
+    setShowSpotifyEmbed(currentEpisode.sourceType === 'spotify');
   }, [currentEpisode]);
 
   // Select an episode from sidebar or library
@@ -214,43 +223,74 @@ export default function App() {
         epData = await response.json();
       }
 
+      const episodeId = epData.id || parsed.episodeId;
+
       const newEpisode: Episode = {
-        id: epData.id || parsed.episodeId,
+        id: episodeId,
         sourceType: 'spotify',
         title: epData.title || `Spotify Episode (${parsed.episodeId.slice(0, 8)})`,
         showName: epData.showName || 'Spotify Podcast',
         artworkUrl: epData.artworkUrl || '',
-        duration: 140, // synchronized demo timeline
-        pubDate: 'Published on Spotify',
+        duration: typeof epData.durationSeconds === 'number' ? epData.durationSeconds : 0,
+        pubDate: epData.pubDate || 'Published on Spotify',
         sourceUrl: parsed.canonicalUrl!,
-        spotifyEmbedUrl: `https://open.spotify.com/embed/episode/${parsed.episodeId}?utm_source=generator&theme=0`,
-        audioUrl: 'SYNTHETIC_SPEECH_STREAM',
-        description: 'Loaded via SpotScript Spotify Episode Importer with synchronized transcript seeking.',
-        chapters: SAMPLE_SPOTIFY_EPISODE.chapters,
+        spotifyEmbedUrl: epData.spotifyEmbedUrl || `https://open.spotify.com/embed/episode/${parsed.episodeId}?utm_source=generator&theme=0`,
+        audioUrl: 'SPOTIFY_EMBED_STREAM',
+        description: epData.description || 'Loaded via SpotScript Spotify Episode Importer.',
+        chapters: [],
       };
+
+      // Only the built-in demo episode ships with a synced sample transcript.
+      // Real imports have no official timed transcript (Spotify's public
+      // transcripts endpoint returns 410 Gone), so show an honest empty state
+      // instead of misleading sample text that doesn't match the audio.
+      const isDemoEpisode = episodeId === SAMPLE_SPOTIFY_ID;
+      const importedTranscript: Transcript | null = isDemoEpisode
+        ? SAMPLE_SPOTIFY_TRANSCRIPT
+        : {
+            episodeId,
+            language: 'en',
+            source: 'official',
+            granularity: 'text-only',
+            paragraphs: [],
+            sentences: [],
+            words: [],
+            title: newEpisode.title,
+          };
 
       setEpisodeList(prev => [newEpisode, ...prev.filter(e => e.id !== newEpisode.id)]);
       setCurrentEpisode(newEpisode);
-      setCurrentTranscript(SAMPLE_SPOTIFY_TRANSCRIPT);
+      setCurrentTranscript(importedTranscript);
       setShowSpotifyEmbed(true);
+      if (!isDemoEpisode && epData.notice) {
+        console.info('[SpotScript]', epData.notice);
+      }
     } catch {
-      // Fallback
+      // Fallback (network error hitting the metadata proxy)
       const fallbackEpisode: Episode = {
         id: parsed.episodeId,
         sourceType: 'spotify',
         title: `Spotify Episode (${parsed.episodeId.slice(0, 8)}...)`,
         showName: 'Spotify Podcast',
         artworkUrl: '',
-        duration: 140,
+        duration: 0,
         pubDate: 'Published on Spotify',
         sourceUrl: parsed.canonicalUrl!,
         spotifyEmbedUrl: `https://open.spotify.com/embed/episode/${parsed.episodeId}?utm_source=generator&theme=0`,
-        audioUrl: 'SYNTHETIC_SPEECH_STREAM',
-        chapters: SAMPLE_SPOTIFY_EPISODE.chapters,
+        audioUrl: 'SPOTIFY_EMBED_STREAM',
+        chapters: [],
       };
       setEpisodeList(prev => [fallbackEpisode, ...prev.filter(e => e.id !== fallbackEpisode.id)]);
       setCurrentEpisode(fallbackEpisode);
-      setCurrentTranscript(SAMPLE_SPOTIFY_TRANSCRIPT);
+      setCurrentTranscript({
+        episodeId: fallbackEpisode.id,
+        language: 'en',
+        source: 'official',
+        granularity: 'text-only',
+        paragraphs: [],
+        sentences: [],
+        words: [],
+      });
       setShowSpotifyEmbed(true);
     } finally {
       setIsLoadingUrl(false);
@@ -259,6 +299,7 @@ export default function App() {
 
   // Import custom audio/transcript
   const handleImportCustom = (ep: Episode, tr: Transcript) => {
+    registerTranscript(tr);
     setEpisodeList(prev => [ep, ...prev]);
     setCurrentEpisode(ep);
     setCurrentTranscript(tr);
